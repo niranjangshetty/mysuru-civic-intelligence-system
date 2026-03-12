@@ -1,0 +1,30 @@
+# MCIS Configuration
+# Override via environment variables where applicable
+
+app:
+  name: "Mysuru Civic Intelligence System"
+  version: "1.0.0"
+  debug: false
+
+paths:
+  documents_dir: "data/documents"
+  index_dir: "data/indices"
+
+embeddings:
+  model: "sentence-transformers/all-MiniLM-L6-v2"  # Lightweight, ~80MB, good for 16GB RAM
+  dimension: 384
+
+retrieval:
+  top_k: 5
+  score_threshold: 0.5
+
+chunking:
+  chunk_size: 512
+  chunk_overlap: 64
+
+llm:
+  provider: "ollama"
+  model: "mistral:latest"  # or override with OLLAMA_MODEL env var
+  base_url: "http://localhost:11434"
+  temperature: 0.3
+  max_tokens: 1024
