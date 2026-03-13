@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Mysuru Civic Intelligence System</title>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <style>
     * {
       box-sizing: border-box;
@@ -62,26 +63,6 @@
       align-self: flex-start;
       background: #fef2f2;
       color: #991b1b;
-    }
-    .citations {
-      margin-top: 0.75rem;
-      padding-top: 0.75rem;
-      border-top: 1px solid #e5e7eb;
-      font-size: 0.8125rem;
-      color: #6b7280;
-    }
-    .citations-title {
-      font-weight: 600;
-      margin-bottom: 0.5rem;
-    }
-    .citation {
-      margin-bottom: 0.5rem;
-      padding-left: 0.5rem;
-      border-left: 3px solid #d1d5db;
-    }
-    .citation-doc {
-      font-weight: 500;
-      color: #4b5563;
     }
     #input-area {
       padding: 1rem 1.5rem;
@@ -153,11 +134,17 @@
   </div>
 
   <script>
-    const API_URL = 'http://16.171.243.244:8000/query';
+    const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+      ? 'http://127.0.0.1:8000/query'
+      : 'http://16.171.243.244:8000/query';
+
     const chatEl = document.getElementById('chat');
     const inputEl = document.getElementById('input');
     const sendBtn = document.getElementById('send');
     const clearBtn = document.getElementById('clear');
+
+    // Track conversation history
+    let chatHistory = [];
 
     // Add user message bubble
     function addUserMessage(text) {
@@ -168,25 +155,13 @@
       scrollToBottom();
     }
 
-    // Add assistant message (answer + optional citations)
-    function addAssistantMessage(answer, sources) {
+    // Add assistant message (answer only, rendered as markdown)
+    function addAssistantMessage(answer) {
       const div = document.createElement('div');
       div.className = 'message assistant';
       const answerEl = document.createElement('div');
-      answerEl.textContent = answer;
+      answerEl.innerHTML = marked.parse(answer || '');
       div.appendChild(answerEl);
-      if (sources && sources.length > 0) {
-        const citationsEl = document.createElement('div');
-        citationsEl.className = 'citations';
-        citationsEl.innerHTML = '<div class="citations-title">Sources</div>';
-        sources.forEach(function (s) {
-          const c = document.createElement('div');
-          c.className = 'citation';
-          c.innerHTML = '<span class="citation-doc">' + escapeHtml(s.document_name) + '</span><br>' + escapeHtml(s.content.substring(0, 150)) + (s.content.length > 150 ? '...' : '');
-          citationsEl.appendChild(c);
-        });
-        div.appendChild(citationsEl);
-      }
       chatEl.appendChild(div);
       scrollToBottom();
     }
@@ -217,12 +192,6 @@
       if (el) el.remove();
     }
 
-    function escapeHtml(str) {
-      const div = document.createElement('div');
-      div.textContent = str;
-      return div.innerHTML;
-    }
-
     function scrollToBottom() {
       chatEl.scrollTop = chatEl.scrollHeight;
     }
@@ -244,13 +213,19 @@
       sendBtn.disabled = true;
 
       addUserMessage(text);
-      const thinkingEl = addThinkingBubble();
+      addThinkingBubble();
+
+      // Add current question to history before sending
+      chatHistory.push(text);
 
       try {
         const res = await fetch(API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ question: text })
+          body: JSON.stringify({
+            question: text,
+            history: chatHistory.slice(-4, -1) // last 3 previous questions (not current)
+          })
         });
 
         removeThinkingBubble();
@@ -260,10 +235,10 @@
         });
 
         if (res.ok) {
-          addAssistantMessage(data.answer || '', data.sources || []);
+          addAssistantMessage(data.answer || '');
         } else {
           if (res.status === 503) {
-            addErrorMessage('AI model not available. Please ensure Ollama is running.');
+            addErrorMessage('Service unavailable. Please try again shortly.');
           } else {
             addErrorMessage(data.detail || 'An error occurred. Please try again.');
           }
@@ -279,10 +254,13 @@
 
     // Event listeners
     sendBtn.addEventListener('click', sendMessage);
+
     clearBtn.addEventListener('click', function () {
       chatEl.innerHTML = '';
+      chatHistory = []; // reset history on clear
       inputEl.focus();
     });
+
     inputEl.addEventListener('keydown', function (e) {
       if (e.key === 'Enter') {
         e.preventDefault();

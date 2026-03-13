@@ -21,6 +21,7 @@ def query(request: QueryRequest, rag: RAGService = Depends(get_rag_service)) -> 
     """Process a civic query (frontend-compatible: accepts 'question' field)."""
     return _chat_impl(
         query=request.question,
+        history=request.history,
         top_k=None,
         include_sources=True,
         rag=rag,
@@ -32,6 +33,7 @@ def chat(request: ChatRequest, rag: RAGService = Depends(get_rag_service)) -> Ch
     """Process a civic query and return a grounded answer with citations."""
     return _chat_impl(
         query=request.query,
+        history=request.history,
         top_k=request.top_k,
         include_sources=request.include_sources,
         rag=rag,
@@ -40,6 +42,7 @@ def chat(request: ChatRequest, rag: RAGService = Depends(get_rag_service)) -> Ch
 
 def _chat_impl(
     query: str,
+    history: list[str] | None,
     top_k: int | None,
     include_sources: bool,
     rag: RAGService,
@@ -48,6 +51,7 @@ def _chat_impl(
     try:
         return rag.chat(
             query=query,
+            history=history,
             top_k=top_k,
             include_sources=include_sources,
         )

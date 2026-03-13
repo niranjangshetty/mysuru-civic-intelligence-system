@@ -19,6 +19,10 @@ class QueryRequest(BaseModel):
     """Request schema for /query endpoint (frontend compatibility)."""
 
     question: str = Field(..., min_length=1, max_length=2000)
+    history: Optional[List[str]] = Field(
+        default=None,
+        description="Optional list of previous user/assistant messages for context",
+    )
 
 
 class ChatRequest(BaseModel):
@@ -27,6 +31,10 @@ class ChatRequest(BaseModel):
     query: str = Field(..., min_length=1, max_length=2000)
     top_k: Optional[int] = Field(default=None, ge=1, le=20)
     include_sources: bool = Field(default=True)
+    history: Optional[List[str]] = Field(
+        default=None,
+        description="Optional list of previous user/assistant messages for context",
+    )
 
 
 class ChatResponse(BaseModel):

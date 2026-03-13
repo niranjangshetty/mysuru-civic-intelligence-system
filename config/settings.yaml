@@ -23,8 +23,7 @@ chunking:
   chunk_overlap: 64
 
 llm:
-  provider: "ollama"
-  model: "mistral:latest"  # or override with OLLAMA_MODEL env var
-  base_url: "http://localhost:11434"
+  provider: "groq"
+  model: "mixtral-8x7b-32768"
   temperature: 0.3
   max_tokens: 1024
