@@ -188,7 +188,6 @@ API docs available at:
 
 ## 🔭 Roadmap
 
-- [ ] Streamlit or Gradio frontend for non-technical users
 - [ ] Multilingual support (Kannada query handling)
 - [ ] Hybrid search (BM25 + FAISS)
 - [ ] Document update detection and incremental re-indexing
