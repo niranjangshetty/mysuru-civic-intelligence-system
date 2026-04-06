@@ -1,77 +1,77 @@
-# Mysuru Civic Intelligence System (MCIS)
+# 🏛️ Mysuru Civic Intelligence System (MCIS)
 
-A RAG-based civic assistant that answers questions using Mysuru municipal documents. Runs locally on a laptop (16GB RAM).
+> **A fully local RAG-powered civic assistant that answers questions from Mysuru municipal documents — no cloud, no API costs, runs on a 16GB laptop.**
 
-## Features
+[![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=flat&logo=python&logoColor=white)](https://python.org)
+[![FastAPI](https://img.shields.io/badge/FastAPI-REST%20API-009688?style=flat&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![FAISS](https://img.shields.io/badge/FAISS-Vector%20Search-blue?style=flat)](https://github.com/facebookresearch/faiss)
+[![Ollama](https://img.shields.io/badge/Ollama-Local%20LLM-black?style=flat)](https://ollama.ai)
+[![sentence-transformers](https://img.shields.io/badge/SentenceTransformers-Embeddings-orange?style=flat)](https://sbert.net)
 
-- **Document ingestion**: PDF, DOCX, TXT support
-- **Vector search**: FAISS for fast similarity search
-- **Embeddings**: sentence-transformers (all-MiniLM-L6-v2)
-- **LLM**: 7B instruct model via Ollama (local inference)
-- **Source citations**: Every answer includes document references
-- **FastAPI**: REST API for chat and admin
+---
 
-## Architecture
+## 📌 What This Project Demonstrates
+
+A **fully offline RAG pipeline** — from raw civic documents through to cited, natural-language answers — with a production-style FastAPI layer on top. Everything runs locally using open-source models.
+
+| Capability | Implementation |
+|---|---|
+| **RAG Pipeline** | Document load → chunk → embed → FAISS index → retrieve → generate |
+| **Local LLM Inference** | Mistral 7B (quantized) via Ollama — zero cloud dependency |
+| **Vector Search** | FAISS similarity search with configurable top-k retrieval |
+| **Embeddings** | `sentence-transformers/all-MiniLM-L6-v2` |
+| **Source Citations** | Every answer references the source document chunks |
+| **API Design** | FastAPI with chat, health, and admin ingest endpoints |
+| **Multi-format Ingestion** | PDF, DOCX, and TXT document support |
+
+---
+
+## 🏗️ Architecture
 
 ```
-data/documents/     →  Load  →  Chunk  →  Embed  →  FAISS index
-                                                      ↓
-Query  →  Embed  →  FAISS search  →  Retriever  →  LLM  →  Answer + citations
+ INGESTION PIPELINE
+ ───────────────────────────────────────────────────────
+ data/documents/  →  Load  →  Chunk  →  Embed  →  FAISS Index
+ (PDF, DOCX, TXT)                                     │
+                                                       │
+ QUERY PIPELINE                                        │
+ ───────────────────────────────────────────────────── │
+ User Query  →  Embed  →  FAISS Search  ───────────────┘
+                               │
+                               ▼
+                          Retriever (top-k chunks)
+                               │
+                               ▼
+                     Mistral 7B via Ollama
+                     (local inference, no cloud)
+                               │
+                               ▼
+                    Answer + Source Citations
 ```
 
-## Quick Start
+---
 
-### 1. Prerequisites
+## ✨ Key Features
 
-- Python 3.10+
-- [Ollama](https://ollama.ai) installed and running
+### 🔒 Fully Local & Private
+No data leaves the machine. Ideal for civic or government document use cases where data privacy matters. Runs comfortably on a **16GB RAM laptop** using a quantized 7B model.
 
-### 2. Install
+### 📄 Multi-format Document Ingestion
+Drop any combination of PDF, DOCX, or TXT files into `data/documents/` and run the ingestion script. The pipeline handles loading, chunking, embedding, and indexing automatically.
 
-```bash
-cd "Mysuru Civic Intelligence System"
-python -m venv .venv
-.venv\Scripts\activate   # Windows
-pip install -r requirements.txt
-```
+### 🔎 Cited Answers
+Every response includes references to the source document chunks used to generate it — enabling transparency and trust in the output.
 
-### 3. Pull the LLM model
+### ⚙️ Configurable & Swappable
+Model, chunk size, top-k retrieval, and document paths are all configurable via `settings.yaml` or `.env`. Switch from Mistral to any Ollama-compatible model in one line.
 
-By default the app uses `mistral:latest` (7B, quantized) which works on an 8GB RAM server:
+---
 
-```bash
-ollama pull mistral:latest
-```
+## 🧪 Example Usage
 
-To use a different model (e.g. a smaller one like `llama3.2:3b`), pull it and set:
-
-```bash
-export OLLAMA_MODEL=llama3.2:3b
-```
-
-or add `OLLAMA_MODEL=llama3.2:3b` to your `.env`.
-
-### 4. Add documents
-
-Place Mysuru municipal documents (PDF, DOCX, TXT) in `data/documents/`.
-
-### 5. Ingest
-
-```bash
-python scripts/ingest.py
-```
-
-### 6. Run the API
-
-```bash
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-```
-
-### 7. Use the API
-
-**Chat** (POST `/chat`):
-
+**Request:**
 ```json
+POST /chat
 {
   "query": "What are the property tax rates in Mysuru?",
   "top_k": 5,
@@ -79,9 +79,19 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 }
 ```
 
-**Health** (GET `/health`):
-
+**Response:**
 ```json
+{
+  "answer": "Property tax in Mysuru is calculated based on...",
+  "sources": [
+    { "document": "mysuru_property_tax_2023.pdf", "chunk": "..." }
+  ]
+}
+```
+
+**Health Check:**
+```json
+GET /health
 {
   "status": "ok",
   "index_loaded": true,
@@ -90,45 +100,111 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 }
 ```
 
-**Ingest** (POST `/admin/ingest`): Re-run ingestion via API.
+---
 
-## Configuration
-
-- `config/settings.yaml` – Main config
-- `.env` – Environment overrides (copy from `.env.example`)
-
-Key settings:
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `DOCUMENTS_DIR` | data/documents | Document folder |
-| `INDEX_DIR` | data/indices | FAISS index output |
-| `EMBEDDING_MODEL` | all-MiniLM-L6-v2 | Embedding model |
-| `OLLAMA_MODEL` | mistral:latest | LLM model (override `llm.model` in `settings.yaml`) |
-| `RETRIEVAL_TOP_K` | 5 | Chunks per query |
-
-## Project Structure
+## 🗂️ Project Structure
 
 ```
 ├── app/
-│   ├── main.py           # FastAPI app
-│   ├── api/routes/       # Chat, health, ingest
-│   ├── core/             # Config, exceptions
-│   ├── models/           # Pydantic schemas
-│   ├── services/         # Loader, chunker, embeddings, vector store, retriever, generator
-│   └── ingestion/        # Pipeline
-├── config/settings.yaml
-├── data/documents/       # Put documents here
-├── data/indices/        # FAISS index (auto-generated)
-├── scripts/ingest.py
+│   ├── main.py               # FastAPI entrypoint
+│   ├── api/routes/           # Chat, health, admin ingest
+│   ├── core/                 # Config, exceptions
+│   ├── models/               # Pydantic schemas
+│   ├── services/             # Loader, chunker, embeddings,
+│   │                         # vector store, retriever, generator
+│   └── ingestion/            # Ingestion pipeline
+├── config/settings.yaml      # Main configuration
+├── data/documents/           # Place source documents here
+├── data/indices/             # FAISS index (auto-generated)
+├── scripts/ingest.py         # Ingestion script
 └── requirements.txt
 ```
 
-## API Docs
+---
 
-- Swagger UI: http://localhost:8000/docs
-- ReDoc: http://localhost:8000/redoc
+## ⚙️ Configuration
 
-## License
+| Variable | Default | Description |
+|---|---|---|
+| `DOCUMENTS_DIR` | `data/documents` | Source document folder |
+| `INDEX_DIR` | `data/indices` | FAISS index output path |
+| `EMBEDDING_MODEL` | `all-MiniLM-L6-v2` | Sentence transformer model |
+| `OLLAMA_MODEL` | `mistral:latest` | Local LLM (overridable) |
+| `RETRIEVAL_TOP_K` | `5` | Chunks retrieved per query |
+
+Configure via `config/settings.yaml` or override with a `.env` file.
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+- Python 3.10+
+- [Ollama](https://ollama.ai) installed and running
+
+### 1. Install
+
+```bash
+cd "Mysuru Civic Intelligence System"
+python -m venv .venv
+.venv\Scripts\activate        # Windows
+# source .venv/bin/activate   # macOS/Linux
+pip install -r requirements.txt
+```
+
+### 2. Pull the LLM
+
+```bash
+ollama pull mistral:latest
+```
+
+To use a lighter model on lower-spec hardware:
+```bash
+ollama pull llama3.2:3b
+export OLLAMA_MODEL=llama3.2:3b
+```
+
+### 3. Add Documents
+
+Place Mysuru municipal documents (PDF, DOCX, TXT) in `data/documents/`.
+
+### 4. Ingest
+
+```bash
+python scripts/ingest.py
+```
+
+### 5. Run the API
+
+```bash
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+API docs available at:
+- Swagger UI: [http://localhost:8000/docs](http://localhost:8000/docs)
+- ReDoc: [http://localhost:8000/redoc](http://localhost:8000/redoc)
+
+---
+
+## 🔭 Roadmap
+
+- [ ] Streamlit or Gradio frontend for non-technical users
+- [ ] Multilingual support (Kannada query handling)
+- [ ] Hybrid search (BM25 + FAISS)
+- [ ] Document update detection and incremental re-indexing
+- [ ] Dockerised deployment for easy self-hosting
+
+---
+
+## 📄 License
 
 MIT
+
+---
+
+## 👤 Author
+
+**Niranjan G Shetty**
+*AI Systems & Applied NLP Engineering*
+
+> Built to demonstrate end-to-end RAG pipeline engineering — from document ingestion and vector indexing through to local LLM inference and a production-ready API layer.
